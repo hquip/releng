@@ -24,12 +24,17 @@ class FridaVersion:
 
 
 def main(argv: List[str]):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("repo", nargs="?", type=Path, default=ROOT_DIR)
-    args = parser.parse_args()
+    try:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("repo", nargs="?", type=Path, default=ROOT_DIR)
+        args = parser.parse_args()
 
-    version = detect(args.repo)
-    print(version.name)
+        version = detect(args.repo)
+        print(version.name)
+    except Exception as e:
+        print(f"Error in frida_version.py: {e}", file=sys.stderr)
+        print("0.0.0")
+        sys.exit(0)
 
 
 def detect(repo: Path) -> FridaVersion:
@@ -46,13 +51,20 @@ def detect(repo: Path) -> FridaVersion:
                                      capture_output=True,
                                      encoding="utf-8").stdout
 
+        if description.startswith("v"):
+            description = description[1:]
+
         tokens = description.strip().replace("-", ".").split(".")
         if len(tokens) > 1:
-            (raw_major, raw_minor, raw_micro, raw_nano, commit) = tokens
+            (raw_major, raw_minor, raw_micro, raw_nano, commit) = tokens[:3] + tokens[-2:]
             major = int(raw_major)
             minor = int(raw_minor)
             micro = int(raw_micro)
-            nano = int(raw_nano)
+            try:
+                nano = int(raw_nano)
+            except ValueError:
+                nano = 0
+            
             if nano > 0:
                 micro += 1
 
